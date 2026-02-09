@@ -5,8 +5,11 @@
 
 import type { KnowledgeBase } from '../../types/kb.types.ts';
 
-const KB_PATH = '/kb.json';
-const KB_MIN_PATH = '/kb.min.json';
+// Use Vite's base URL for GitHub Pages compatibility
+// import.meta.env.BASE_URL is set by Vite based on the base config
+const BASE_URL = import.meta.env.BASE_URL || '/';
+const KB_PATH = `${BASE_URL}kb.json`.replace(/\/+/g, '/'); // Normalize multiple slashes
+const KB_MIN_PATH = `${BASE_URL}kb.min.json`.replace(/\/+/g, '/');
 
 let cachedKB: KnowledgeBase | null = null;
 
