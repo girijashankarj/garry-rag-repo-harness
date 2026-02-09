@@ -24,7 +24,7 @@ export function MarkdownContent({ content, language }: MarkdownContentProps) {
 
       // Process code blocks first (before other markdown)
       // Mermaid diagrams
-      html = html.replace(/```mermaid\n?([\s\S]*?)```/gi, (match, code) => {
+      html = html.replace(/```mermaid\n?([\s\S]*?)```/gi, (_match, code) => {
         const trimmed = code.trim();
         return `<div class="my-4 p-4 bg-muted/50 border border-border rounded-md">
           <div class="flex items-center gap-2 mb-2">

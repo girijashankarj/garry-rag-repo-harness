@@ -183,10 +183,14 @@ export async function fetchPRFiles(
       throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
     }
 
-    const files = await response.json();
+    const files = await response.json() as Array<{
+      filename: string;
+      status: string;
+      additions?: number;
+      deletions?: number;
+    }>;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return files.map((file: any) => ({
+    return files.map((file) => ({
       filename: file.filename,
       status: file.status,
       additions: file.additions || 0,

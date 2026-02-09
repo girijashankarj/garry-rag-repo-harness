@@ -114,7 +114,7 @@ function chunkMarkdown(content: string, options: ChunkingOptions): string[] {
 /**
  * Chunk code by functions/classes
  */
-function chunkCode(content: string, lang: string, options: ChunkingOptions): string[] {
+function chunkCode(content: string, _lang: string, options: ChunkingOptions): string[] {
   const chunks: string[] = [];
   const lines = content.split('\n');
 

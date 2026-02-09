@@ -63,7 +63,7 @@ export async function search(
   const keywordResults = searchIndex.search(trimmedQuery);
 
   // Apply filters efficiently
-  const keywordSearchResults: SearchResult[] = keywordResults
+  const mappedResults = keywordResults
     .slice(0, limit * 3) // Limit early for performance on large result sets
     .map((result) => {
       const doc = kbData!.docs.find((d) => d.id === result.ref);
@@ -100,8 +100,10 @@ export async function search(
         score: result.score,
         matchData: result.matchData,
       };
-    })
-    .filter((r): r is SearchResult => r !== null)
+    });
+
+  const keywordSearchResults: SearchResult[] = mappedResults
+    .filter((r: SearchResult | null): r is SearchResult => r !== null)
     .slice(0, limit * 2); // Final limit
 
   // Semantic search (if embeddings available)
