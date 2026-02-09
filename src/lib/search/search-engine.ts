@@ -98,12 +98,14 @@ export async function search(
       return {
         doc,
         score: result.score,
-        matchData: result.matchData,
+        matchData: result.matchData ? {
+          metadata: result.matchData.metadata as Record<string, Record<string, { position: number[][] }>>,
+        } : undefined,
       };
-    });
+    })
+    .filter((r): r is SearchResult => r !== null);
 
   const keywordSearchResults: SearchResult[] = mappedResults
-    .filter((r: SearchResult | null): r is SearchResult => r !== null)
     .slice(0, limit * 2); // Final limit
 
   // Semantic search (if embeddings available)

@@ -192,7 +192,7 @@ export async function fetchPRFiles(
 
     return files.map((file) => ({
       filename: file.filename,
-      status: file.status,
+      status: file.status as 'added' | 'removed' | 'modified' | 'renamed',
       additions: file.additions || 0,
       deletions: file.deletions || 0,
     }));
