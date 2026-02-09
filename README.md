@@ -13,6 +13,10 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
 </p>
 
+<p align="center">
+  <a href="https://girijashankarj.github.io/garry-rag-repo-harness/"><strong>Live Demo</strong></a>
+</p>
+
 ---
 
 ## Overview
