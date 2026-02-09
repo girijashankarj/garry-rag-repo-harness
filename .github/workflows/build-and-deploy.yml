@@ -73,14 +73,31 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: kb-files
+          path: dist
 
       - name: Copy KB to public directory
         run: |
           mkdir -p public
-          cp dist/kb.json public/kb.json || true
-          cp dist/kb.min.json public/kb.min.json || true
-          ls -lh public/ || echo "Public directory contents:"
-          ls -lh dist/ || echo "Dist directory contents:"
+          # Ensure KB files exist before copying
+          if [ -f dist/kb.json ]; then
+            cp dist/kb.json public/kb.json
+            echo "✓ Copied kb.json to public/"
+          else
+            echo "⚠️  dist/kb.json not found!"
+            ls -la dist/ || echo "dist directory does not exist"
+          fi
+          if [ -f dist/kb.min.json ]; then
+            cp dist/kb.min.json public/kb.min.json
+            echo "✓ Copied kb.min.json to public/"
+          else
+            echo "⚠️  dist/kb.min.json not found!"
+          fi
+          echo ""
+          echo "Public directory contents:"
+          ls -lh public/ || echo "Public directory is empty"
+          echo ""
+          echo "Dist directory contents (first 10 files):"
+          ls -lh dist/ | head -10 || echo "Dist directory does not exist"
 
       - name: Type-check
         run: npx tsc -b
