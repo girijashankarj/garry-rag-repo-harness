@@ -98,9 +98,14 @@ export async function search(
       return {
         doc,
         score: result.score,
-        matchData: result.matchData ? {
-          metadata: result.matchData.metadata as Record<string, Record<string, { position: number[][] }>>,
-        } : undefined,
+        matchData: result.matchData
+          ? {
+              metadata: result.matchData.metadata as Record<
+                string,
+                Record<string, { position: number[][] }>
+              >,
+            }
+          : undefined,
       };
     });
 

@@ -183,7 +183,7 @@ export async function fetchPRFiles(
       throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
     }
 
-    const files = await response.json() as Array<{
+    const files = (await response.json()) as Array<{
       filename: string;
       status: string;
       additions?: number;

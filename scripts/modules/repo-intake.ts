@@ -73,7 +73,7 @@ async function retryWithBackoff<T>(
     } catch (error) {
       lastError = error;
       const isTransient = isTransientError(error);
-      
+
       if (attempt === maxRetries || !isTransient) {
         // Don't retry if max retries reached or error is not transient
         throw error;
@@ -152,11 +152,15 @@ async function cloneOrUpdateRepo(
             );
           }
         } catch (fallbackError) {
-          console.warn(`  ⚠️  Could not update ${repo}: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`);
+          console.warn(
+            `  ⚠️  Could not update ${repo}: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`
+          );
           return null;
         }
       } else {
-        console.error(`  ✗ Failed to update ${repo} after retries: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(
+          `  ✗ Failed to update ${repo} after retries: ${error instanceof Error ? error.message : String(error)}`
+        );
         return null;
       }
     }
@@ -168,7 +172,13 @@ async function cloneOrUpdateRepo(
     try {
       await retryWithBackoff(
         async () => {
-          await git.clone(repoUrl, repoPath, ['--branch', branch, '--single-branch', '--depth', '1']);
+          await git.clone(repoUrl, repoPath, [
+            '--branch',
+            branch,
+            '--single-branch',
+            '--depth',
+            '1',
+          ]);
         },
         3,
         2000,
@@ -192,7 +202,9 @@ async function cloneOrUpdateRepo(
             `Cloning ${repo} (default branch)`
           );
         } catch (cloneError) {
-          console.error(`  ✗ Could not clone ${repo}: ${cloneError instanceof Error ? cloneError.message : String(cloneError)}`);
+          console.error(
+            `  ✗ Could not clone ${repo}: ${cloneError instanceof Error ? cloneError.message : String(cloneError)}`
+          );
           // Clean up failed clone directory
           if (existsSync(repoPath)) {
             rmSync(repoPath, { recursive: true, force: true });
@@ -200,7 +212,9 @@ async function cloneOrUpdateRepo(
           return null;
         }
       } else {
-        console.error(`  ✗ Failed to clone ${repo} after retries: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(
+          `  ✗ Failed to clone ${repo} after retries: ${error instanceof Error ? error.message : String(error)}`
+        );
         // Clean up failed clone directory
         if (existsSync(repoPath)) {
           rmSync(repoPath, { recursive: true, force: true });

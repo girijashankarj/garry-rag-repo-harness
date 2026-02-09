@@ -101,6 +101,9 @@ jobs:
     name: Deploy
     needs: build-site
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -117,17 +120,24 @@ jobs:
           echo ""
           echo "📋 Troubleshooting Steps:"
           echo ""
-          echo "1. Enable GitHub Pages in repository settings:"
-          echo "   → https://github.com/${{ github.repository }}/settings/pages"
-          echo "   → Source: Select 'GitHub Actions'"
+          echo "⚠️  IMPORTANT: GitHub Pages must be enabled BEFORE running this workflow"
           echo ""
-          echo "2. Verify repository permissions:"
+          echo "1. Enable GitHub Pages:"
+          echo "   → Go to: https://github.com/${{ github.repository }}/settings/pages"
+          echo "   → Under 'Source', select: 'GitHub Actions' (NOT 'Deploy from a branch')"
+          echo "   → Click 'Save'"
+          echo ""
+          echo "2. Verify workflow permissions:"
           echo "   → Settings → Actions → General → Workflow permissions"
-          echo "   → Ensure 'Read and write permissions' is selected"
+          echo "   → Select: 'Read and write permissions'"
+          echo "   → Click 'Save'"
           echo ""
-          echo "3. Check that the 'github-pages' environment exists:"
-          echo "   → Settings → Environments → github-pages"
-          echo "   → It should be created automatically when Pages is enabled"
+          echo "3. After enabling Pages, re-run this workflow:"
+          echo "   → Go to: Actions tab → Select this workflow → 'Run workflow'"
           echo ""
-          echo "4. For more details, check the workflow logs above"
+          echo "4. The 'github-pages' environment will be created automatically"
+          echo "   → You can verify it exists at: Settings → Environments"
+          echo ""
+          echo "💡 Note: The 404 error means GitHub Pages API is not available"
+          echo "   This happens when Pages is not enabled in repository settings."
           exit 1
