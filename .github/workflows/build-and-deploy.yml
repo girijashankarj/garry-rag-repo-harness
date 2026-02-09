@@ -108,3 +108,26 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Check deployment status
+        if: steps.deployment.outcome != 'success'
+        run: |
+          echo "::error::GitHub Pages deployment failed!"
+          echo ""
+          echo "📋 Troubleshooting Steps:"
+          echo ""
+          echo "1. Enable GitHub Pages in repository settings:"
+          echo "   → https://github.com/${{ github.repository }}/settings/pages"
+          echo "   → Source: Select 'GitHub Actions'"
+          echo ""
+          echo "2. Verify repository permissions:"
+          echo "   → Settings → Actions → General → Workflow permissions"
+          echo "   → Ensure 'Read and write permissions' is selected"
+          echo ""
+          echo "3. Check that the 'github-pages' environment exists:"
+          echo "   → Settings → Environments → github-pages"
+          echo "   → It should be created automatically when Pages is enabled"
+          echo ""
+          echo "4. For more details, check the workflow logs above"
+          exit 1
