@@ -39,8 +39,61 @@ export interface RepoManifest {
 const REPOS_DIR = '.repos';
 
 /**
+ * Check if an error is a transient GitHub error that should be retried
+ */
+function isTransientError(error: unknown): boolean {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  // Check for HTTP error codes that indicate transient issues
+  const transientPatterns = [
+    /502/,
+    /500/,
+    /503/,
+    /504/,
+    /timeout/i,
+    /ECONNRESET/,
+    /ETIMEDOUT/,
+    /network/i,
+  ];
+  return transientPatterns.some((pattern) => pattern.test(errorMessage));
+}
+
+/**
+ * Retry a function with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelayMs: number = 2000,
+  operation: string = 'operation'
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const isTransient = isTransientError(error);
+      
+      if (attempt === maxRetries || !isTransient) {
+        // Don't retry if max retries reached or error is not transient
+        throw error;
+      }
+
+      const delayMs = baseDelayMs * Math.pow(2, attempt);
+      console.warn(
+        `  ⚠️  ${operation} failed (attempt ${attempt + 1}/${maxRetries + 1}): ${error instanceof Error ? error.message : String(error)}`
+      );
+      console.log(`  ⏳ Retrying in ${delayMs / 1000}s...`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
+/**
  * Clone or update a repository
  * Handles missing branches gracefully by trying to detect default branch
+ * Includes retry logic for transient GitHub errors
  */
 async function cloneOrUpdateRepo(
   repo: string,
@@ -56,35 +109,54 @@ async function cloneOrUpdateRepo(
     console.log(`  Updating ${repo} (${branch})...`);
     const repoGit = simpleGit(repoPath);
     try {
-      await repoGit.fetch();
-      await repoGit.checkout(branch);
-      await repoGit.pull('origin', branch);
-    } catch {
-      // Branch might not exist, try to get default branch
-      console.warn(`  ⚠️  Branch ${branch} not found, trying default branch...`);
-      try {
-        const remotes = await repoGit.getRemotes(true);
-        const origin = remotes.find((r) => r.name === 'origin');
-        if (origin) {
+      await retryWithBackoff(
+        async () => {
           await repoGit.fetch();
-          const branches = await repoGit.branch(['-r']);
-          // Try common default branch names
-          const defaultBranches = ['main', 'master', 'develop', 'dev'];
-          let found = false;
-          for (const defaultBranch of defaultBranches) {
-            if (branches.all.some((b) => b.includes(`origin/${defaultBranch}`))) {
-              await repoGit.checkout(defaultBranch);
-              await repoGit.pull('origin', defaultBranch);
-              found = true;
-              break;
-            }
+          await repoGit.checkout(branch);
+          await repoGit.pull('origin', branch);
+        },
+        3,
+        2000,
+        `Updating ${repo}`
+      );
+    } catch (error) {
+      // Branch might not exist, try to get default branch
+      if (!isTransientError(error)) {
+        console.warn(`  ⚠️  Branch ${branch} not found, trying default branch...`);
+        try {
+          const remotes = await repoGit.getRemotes(true);
+          const origin = remotes.find((r) => r.name === 'origin');
+          if (origin) {
+            await retryWithBackoff(
+              async () => {
+                await repoGit.fetch();
+                const branches = await repoGit.branch(['-r']);
+                // Try common default branch names
+                const defaultBranches = ['main', 'master', 'develop', 'dev'];
+                let found = false;
+                for (const defaultBranch of defaultBranches) {
+                  if (branches.all.some((b) => b.includes(`origin/${defaultBranch}`))) {
+                    await repoGit.checkout(defaultBranch);
+                    await repoGit.pull('origin', defaultBranch);
+                    found = true;
+                    break;
+                  }
+                }
+                if (!found) {
+                  throw new Error(`No default branch found for ${repo}`);
+                }
+              },
+              3,
+              2000,
+              `Fetching default branch for ${repo}`
+            );
           }
-          if (!found) {
-            throw new Error(`No default branch found for ${repo}`);
-          }
+        } catch (fallbackError) {
+          console.warn(`  ⚠️  Could not update ${repo}: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`);
+          return null;
         }
-      } catch (fallbackError) {
-        console.warn(`  ⚠️  Could not update ${repo}: ${fallbackError}`);
+      } else {
+        console.error(`  ✗ Failed to update ${repo} after retries: ${error instanceof Error ? error.message : String(error)}`);
         return null;
       }
     }
@@ -94,18 +166,41 @@ async function cloneOrUpdateRepo(
     mkdirSync(repoPath, { recursive: true });
     const repoUrl = `https://github.com/${repo}.git`;
     try {
-      await git.clone(repoUrl, repoPath, ['--branch', branch, '--single-branch', '--depth', '1']);
-    } catch {
+      await retryWithBackoff(
+        async () => {
+          await git.clone(repoUrl, repoPath, ['--branch', branch, '--single-branch', '--depth', '1']);
+        },
+        3,
+        2000,
+        `Cloning ${repo}@${branch}`
+      );
+    } catch (error) {
       // Branch doesn't exist, try cloning without branch specification to get default
-      console.warn(`  ⚠️  Branch ${branch} not found, cloning default branch...`);
-      try {
-        // Clone without branch spec to get default branch
-        await git.clone(repoUrl, repoPath, ['--depth', '1']);
-        const repoGit = simpleGit(repoPath);
-        const currentBranch = (await repoGit.revparse(['--abbrev-ref', 'HEAD'])).trim();
-        console.log(`  ✓ Cloned ${repo} with default branch: ${currentBranch}`);
-      } catch (cloneError) {
-        console.warn(`  ⚠️  Could not clone ${repo}: ${cloneError}`);
+      if (!isTransientError(error)) {
+        console.warn(`  ⚠️  Branch ${branch} not found, cloning default branch...`);
+        try {
+          await retryWithBackoff(
+            async () => {
+              // Clone without branch spec to get default branch
+              await git.clone(repoUrl, repoPath, ['--depth', '1']);
+              const repoGit = simpleGit(repoPath);
+              const currentBranch = (await repoGit.revparse(['--abbrev-ref', 'HEAD'])).trim();
+              console.log(`  ✓ Cloned ${repo} with default branch: ${currentBranch}`);
+            },
+            3,
+            2000,
+            `Cloning ${repo} (default branch)`
+          );
+        } catch (cloneError) {
+          console.error(`  ✗ Could not clone ${repo}: ${cloneError instanceof Error ? cloneError.message : String(cloneError)}`);
+          // Clean up failed clone directory
+          if (existsSync(repoPath)) {
+            rmSync(repoPath, { recursive: true, force: true });
+          }
+          return null;
+        }
+      } else {
+        console.error(`  ✗ Failed to clone ${repo} after retries: ${error instanceof Error ? error.message : String(error)}`);
         // Clean up failed clone directory
         if (existsSync(repoPath)) {
           rmSync(repoPath, { recursive: true, force: true });
