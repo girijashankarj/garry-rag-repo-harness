@@ -79,6 +79,8 @@ jobs:
           mkdir -p public
           cp dist/kb.json public/kb.json || true
           cp dist/kb.min.json public/kb.min.json || true
+          ls -lh public/ || echo "Public directory contents:"
+          ls -lh dist/ || echo "Dist directory contents:"
 
       - name: Type-check
         run: npx tsc -b
@@ -87,6 +89,14 @@ jobs:
         env:
           GITHUB_PAGES: 'true'
         run: npm run build
+
+      - name: Verify KB files in dist
+        run: |
+          echo "Checking for KB files in dist directory:"
+          ls -lh dist/kb*.json || echo "KB files not found in dist!"
+          echo ""
+          echo "Dist directory contents:"
+          ls -la dist/ | head -20
 
       - name: Cleanup temporary files
         if: always()
