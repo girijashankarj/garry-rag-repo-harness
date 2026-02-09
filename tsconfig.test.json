@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": false,
+    "erasableSyntaxOnly": false,
+    "esModuleInterop": true,
+    "types": ["jest", "@testing-library/jest-dom", "vite/client"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src", "tests"]
+}

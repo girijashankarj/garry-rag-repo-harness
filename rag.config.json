@@ -1,0 +1,11 @@
+{
+  "repoType": "owner",
+  "branches": ["main", "master"],
+  "outputDir": "./dist",
+  "maxChunkSize": 3000,
+  "kbSizeLimit": 20000000,
+  "fetchPRs": true,
+  "maxPRs": 1000,
+  "maxRepos": 50,
+  "generateEmbeddings": true
+}

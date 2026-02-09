@@ -1,0 +1,110 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-kb:
+    name: Build Knowledge Base
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build knowledge base
+        env:
+          ACTION_TOKEN: ${{ secrets.ACTION_TOKEN }}
+          ACTION_USER: ${{ secrets.ACTION_USER }}
+        run: npm run build:kb
+
+      - name: Copy KB to public directory
+        run: |
+          mkdir -p public
+          cp dist/kb.json public/kb.json || true
+          cp dist/kb.min.json public/kb.min.json || true
+
+      - name: Cleanup temporary files
+        if: always()
+        run: npm run cleanup || true
+
+      - name: Upload KB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kb-files
+          path: |
+            dist/kb.json
+            dist/kb.min.json
+          retention-days: 1
+
+  build-site:
+    name: Build Site
+    needs: build-kb
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download KB artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kb-files
+
+      - name: Copy KB to public directory
+        run: |
+          mkdir -p public
+          cp dist/kb.json public/kb.json || true
+          cp dist/kb.min.json public/kb.min.json || true
+
+      - name: Type-check
+        run: npx tsc -b
+
+      - name: Build
+        env:
+          GITHUB_PAGES: 'true'
+        run: npm run build
+
+      - name: Cleanup temporary files
+        if: always()
+        run: npm run cleanup || true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build-site
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

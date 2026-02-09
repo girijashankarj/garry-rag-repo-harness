@@ -1,0 +1,11 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+BLUE="\033[0;34m"
+NC="\033[0m"
+
+echo "${BLUE}==> Commit message validation${NC}"
+npx --no-install commitlint --edit "$1" || { echo "${RED}Commit message format invalid. Use conventional commit format.${NC}"; exit 1; }
+echo "${GREEN}Commit message format valid.${NC}"

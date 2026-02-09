@@ -1,0 +1,64 @@
+# .ragignore
+# Patterns to exclude from indexing
+# Supports gitignore-style patterns
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+**/credentials/**
+**/secrets/**
+**/config/secrets.*
+
+# Dependencies
+node_modules/
+**/vendor/
+**/venv/
+**/.venv/
+
+# Build artifacts
+dist/
+build/
+.next/
+out/
+.cache/
+coverage/
+*.min.js
+*.min.css
+
+# Logs
+*.log
+logs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Lock files (usually not needed for search)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Test files (optional - remove if you want to index tests)
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/__tests__/**
+**/tests/**
+
+# Documentation that's already indexed elsewhere
+**/CHANGELOG.md
+**/LICENSE
