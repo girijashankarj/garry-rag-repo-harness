@@ -63,9 +63,9 @@ export async function search(
   const keywordResults = searchIndex.search(trimmedQuery);
 
   // Apply filters efficiently
-  const mappedResults = keywordResults
+  const mappedResults: (SearchResult | null)[] = keywordResults
     .slice(0, limit * 3) // Limit early for performance on large result sets
-    .map((result) => {
+    .map((result): SearchResult | null => {
       const doc = kbData!.docs.find((d) => d.id === result.ref);
       if (!doc) {
         return null;
@@ -102,10 +102,10 @@ export async function search(
           metadata: result.matchData.metadata as Record<string, Record<string, { position: number[][] }>>,
         } : undefined,
       };
-    })
-    .filter((r): r is SearchResult => r !== null);
+    });
 
   const keywordSearchResults: SearchResult[] = mappedResults
+    .filter((r): r is SearchResult => r !== null)
     .slice(0, limit * 2); // Final limit
 
   // Semantic search (if embeddings available)
